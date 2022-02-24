@@ -1,0 +1,6 @@
+Constructing an X.509 Certificate Using ASN.1
+    https://cipherious.wordpress.com/2013/05/13/constructing-an-x-509-certificate-using-asn-1/
+
+
+Constructing an X.509 Certificate Using Bouncy Castle
+    https://cipherious.wordpress.com/2013/05/20/constructing-an-x-509-certificate-using-bouncy-castle/
