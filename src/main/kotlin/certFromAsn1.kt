@@ -56,8 +56,11 @@ fun main() {
         CertificateSerialNumber  ::=  INTEGER
      */
 
-    // Replace below with appropriate use of SecureRandom
-    val CertificateSerialNumber: ASN1Integer = ASN1Integer(BigInteger.valueOf(Math.abs(Random().nextLong())))
+    // Create 9-byte serial number consistent with RFC5280
+    val bytes = ByteArray(9)
+    random.nextBytes(bytes)
+    val bigInteger = BigInteger(1, bytes)
+    val CertificateSerialNumber: ASN1Integer = ASN1Integer(bigInteger)
 
     //=============================================================
     //  signature AlgorithmIdentifier
