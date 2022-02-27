@@ -270,6 +270,28 @@ fun main() {
 
     //-------------------------------------------------------------
     //  KeyUsage
+    /*
+        -- key usage extension OID and syntax
+
+        ext-KeyUsage EXTENSION ::= { SYNTAX
+            KeyUsage IDENTIFIED BY id-ce-keyUsage }
+        id-ce-keyUsage OBJECT IDENTIFIER ::=  { id-ce 15 }
+
+        KeyUsage ::= BIT STRING {
+
+          digitalSignature        (0),
+          nonRepudiation          (1), --  recent editions of X.509 have
+                                       --  renamed this bit to
+                                       --  contentCommitment
+          keyEncipherment         (2),
+          dataEncipherment        (3),
+          keyAgreement            (4),
+          keyCertSign             (5),
+          cRLSign                 (6),
+          encipherOnly            (7),
+          decipherOnly            (8)
+        }
+     */
 
     val digitalSignature = 1 shl 7
     val nonRepudiation = 1 shl 6
