@@ -4,10 +4,7 @@ import org.bouncycastle.crypto.digests.SHA1Digest
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.File
 import java.math.BigInteger
-import java.security.KeyPairGenerator
-import java.security.SecureRandom
-import java.security.Security
-import java.security.Signature
+import java.security.*
 import java.util.*
 
 // See Constructing an X.509 Certificate Using ASN.1
@@ -48,7 +45,7 @@ fun main() {
         Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
      */
 
-    val Version = DERTaggedObject(true, 0, ASN1Integer(2))
+    val version = DERTaggedObject(true, 0, ASN1Integer(2))
 
     //=============================================================
     //  serialNumber CertificateSerialNumber
@@ -60,7 +57,7 @@ fun main() {
     val bytes = ByteArray(9)
     random.nextBytes(bytes)
     val bigInteger = BigInteger(1, bytes)
-    val CertificateSerialNumber: ASN1Integer = ASN1Integer(bigInteger)
+    val serialNumber: ASN1Integer = ASN1Integer(bigInteger)
 
     //=============================================================
     //  signature AlgorithmIdentifier
@@ -70,10 +67,10 @@ fun main() {
             parameters ANY DEFINED BY algorithm OPTIONAL  }
      */
 
-    val SignatureAlgorithmIdentifier_ASN: ASN1EncodableVector = ASN1EncodableVector()
-    SignatureAlgorithmIdentifier_ASN.add(ASN1ObjectIdentifier("1.2.840.113549.1.1.5"))
-    SignatureAlgorithmIdentifier_ASN.add(DERNull.INSTANCE)
-    val SignatureAlgorithm: DERSequence = DERSequence(SignatureAlgorithmIdentifier_ASN)
+    val signatureAlgorithmIdentifier_ASN: ASN1EncodableVector = ASN1EncodableVector()
+    signatureAlgorithmIdentifier_ASN.add(ASN1ObjectIdentifier("1.2.840.113549.1.1.5"))
+    signatureAlgorithmIdentifier_ASN.add(DERNull.INSTANCE)
+    val signatureAlgorithm: DERSequence = DERSequence(signatureAlgorithmIdentifier_ASN)
 
     //=============================================================
     //  issuer Name
@@ -112,14 +109,14 @@ fun main() {
     val organizationalUnitName = DERSet(organizationalUnitNameATV)
     val issuerCommonName = DERSet(issuerCommonNameATV)
 
-    val IssuerRelativeDistinguishedName = ASN1EncodableVector()
-    IssuerRelativeDistinguishedName.add(countryName)
-    IssuerRelativeDistinguishedName.add(organizationName)
-    IssuerRelativeDistinguishedName.add(organizationalUnitName)
-    IssuerRelativeDistinguishedName.add(issuerCommonName)
+    val issuerRelativeDistinguishedName = ASN1EncodableVector()
+    issuerRelativeDistinguishedName.add(countryName)
+    issuerRelativeDistinguishedName.add(organizationName)
+    issuerRelativeDistinguishedName.add(organizationalUnitName)
+    issuerRelativeDistinguishedName.add(issuerCommonName)
 
     //RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
-    val IssuerName = DERSequence(IssuerRelativeDistinguishedName)
+    val issuerName = DERSequence(issuerRelativeDistinguishedName)
 
     //=============================================================
     //  validity Validity
@@ -132,10 +129,10 @@ fun main() {
 
     val notBefore = DERUTCTime(Date(System.currentTimeMillis()))
     val notAfter = DERUTCTime(Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 30 * 12 * 3))
-    val Time = ASN1EncodableVector()
-    Time.add(notBefore)
-    Time.add(notAfter)
-    val Validity = DERSequence(Time)
+    val time = ASN1EncodableVector()
+    time.add(notBefore)
+    time.add(notAfter)
+    val validity = DERSequence(time)
 
     //=============================================================
     //  subject Name
@@ -151,14 +148,14 @@ fun main() {
 
     //RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue
     val subjectCommonName = DERSet(subjectCommonNameATV)
-    val SubjectRelativeDistinguishedName = ASN1EncodableVector()
-    SubjectRelativeDistinguishedName.add(countryName)
-    SubjectRelativeDistinguishedName.add(organizationName)
-    SubjectRelativeDistinguishedName.add(organizationalUnitName)
-    SubjectRelativeDistinguishedName.add(subjectCommonName)
+    val subjectRelativeDistinguishedName = ASN1EncodableVector()
+    subjectRelativeDistinguishedName.add(countryName)
+    subjectRelativeDistinguishedName.add(organizationName)
+    subjectRelativeDistinguishedName.add(organizationalUnitName)
+    subjectRelativeDistinguishedName.add(subjectCommonName)
 
     //RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
-    val SubjectName = DERSequence(SubjectRelativeDistinguishedName)
+    val subjectName = DERSequence(subjectRelativeDistinguishedName)
 
     //=============================================================
     //  subjectPublicKeyInfo SubjectPublicKeyInfo
@@ -168,16 +165,15 @@ fun main() {
             subjectPublicKey     BIT STRING  }
      */
 
-    ///Generate the 2048-bit RSA Public Key  - PublicKey returns SubjectPublicKeyInfo by default (X.509 format)
-//    val random: SecureRandom = SecureRandom()
+    //Generate the 2048-bit RSA Public Key  - PublicKey returns SubjectPublicKeyInfo by default (X.509 format)
     val kpGen = KeyPairGenerator.getInstance("RSA")
     kpGen.initialize(2048, random)
-    val keyPair = kpGen.generateKeyPair()
-    val RSAPubKey = keyPair.public
+    val keyPair: KeyPair = kpGen.generateKeyPair()
+    val rsaPubKey: PublicKey = keyPair.public
 
-    //Convert public key bytes (in SubjectPublicKeyInfo format) to ASN1Sequence
-    val RSAPubKeyBytes = RSAPubKey.encoded
-    val SubjectPublicKeyInfo = ASN1Sequence.getInstance(RSAPubKeyBytes)
+    // Convert public key bytes (already in SubjectPublicKeyInfo format) to ASN1Sequence
+    val rsaPubKeyBytes: ByteArray = rsaPubKey.encoded
+    val subjectPublicKeyInfo: ASN1Sequence = ASN1Sequence.getInstance(rsaPubKeyBytes)
 
     //=============================================================
     //  issuerUniqueID [1] IMPLICIT UniqueIdentifier OPTIONAL,
@@ -198,12 +194,54 @@ fun main() {
     //  Authority Information Access
     //  CRL Distribution Points
 
+    /*
+        EXTENSION ::= CLASS {
+            &id  OBJECT IDENTIFIER UNIQUE,
+            &ExtnType,
+            &Critical    BOOLEAN DEFAULT {TRUE | FALSE }
+        } WITH SYNTAX {
+            SYNTAX &ExtnType IDENTIFIED BY &id
+            [CRITICALITY &Critical]
+        }
+     */
+
     //-------------------------------------------------------------
     //  Subject Key Identifier
     //  Authority Key Identifier
+    /*
+        -- authority key identifier OID and syntax
+
+        ext-AuthorityKeyIdentifier EXTENSION ::= { SYNTAX
+            AuthorityKeyIdentifier IDENTIFIED BY
+            id-ce-authorityKeyIdentifier }
+        id-ce-authorityKeyIdentifier OBJECT IDENTIFIER ::=  { id-ce 35 }
+
+        AuthorityKeyIdentifier ::= SEQUENCE {
+            keyIdentifier             [0] KeyIdentifier            OPTIONAL,
+            authorityCertIssuer       [1] GeneralNames             OPTIONAL,
+            authorityCertSerialNumber [2] CertificateSerialNumber  OPTIONAL }
+            (WITH COMPONENTS {
+            ...,
+            authorityCertIssuer        PRESENT,
+            authorityCertSerialNumber  PRESENT
+            } |
+            WITH COMPONENTS {
+            ...,
+            authorityCertIssuer        ABSENT,
+            authorityCertSerialNumber  ABSENT
+            })
+
+        KeyIdentifier ::= OCTET STRING
+
+        -- subject key identifier OID and syntax
+
+        ext-SubjectKeyIdentifier EXTENSION ::= { SYNTAX
+            KeyIdentifier IDENTIFIED BY id-ce-subjectKeyIdentifier }
+        id-ce-subjectKeyIdentifier OBJECT IDENTIFIER ::=  { id-ce 14 }
+     */
 
     //Get the subjectPublicKey from SubjectPublicKeyInfo to calculate the keyIdentifier
-    val subjectPublicKey = SubjectPublicKeyInfo.getObjectAt(1).toASN1Primitive() as DERBitString
+    val subjectPublicKey = subjectPublicKeyInfo.getObjectAt(1).toASN1Primitive() as DERBitString
 
     //Calculate the keyIdentifier
     // Same core key identifier for both issuer and subject because this is a self-signed cert
@@ -310,7 +348,7 @@ fun main() {
     //  Subject Alternative Name
 
     val rfc822Name = DERTaggedObject(false, 1, DERIA5String("john.smith@gmail.com"))
-    val directoryName = DERTaggedObject(true, 4, SubjectName) //directoryName explicitly tagged
+    val directoryName = DERTaggedObject(true, 4, subjectName) //directoryName explicitly tagged
 
     val GeneralNamesVec = ASN1EncodableVector()
     GeneralNamesVec.add(rfc822Name)
@@ -414,13 +452,13 @@ fun main() {
     //  TBSCertificate := SEQUENCE
 
     val TBSCertificate_ASN = ASN1EncodableVector()
-    TBSCertificate_ASN.add(Version)
-    TBSCertificate_ASN.add(CertificateSerialNumber)
-    TBSCertificate_ASN.add(SignatureAlgorithm)
-    TBSCertificate_ASN.add(IssuerName)
-    TBSCertificate_ASN.add(Validity)
-    TBSCertificate_ASN.add(SubjectName)
-    TBSCertificate_ASN.add(SubjectPublicKeyInfo)
+    TBSCertificate_ASN.add(version)
+    TBSCertificate_ASN.add(serialNumber)
+    TBSCertificate_ASN.add(signatureAlgorithm)
+    TBSCertificate_ASN.add(issuerName)
+    TBSCertificate_ASN.add(validity)
+    TBSCertificate_ASN.add(subjectName)
+    TBSCertificate_ASN.add(subjectPublicKeyInfo)
     TBSCertificate_ASN.add(extensions)
 
     val TBSCertificate = DERSequence(TBSCertificate_ASN)
@@ -443,13 +481,13 @@ fun main() {
 
     val cert_ASN = ASN1EncodableVector()
     cert_ASN.add(TBSCertificate)
-    cert_ASN.add(SignatureAlgorithm)
+    cert_ASN.add(signatureAlgorithm)
     cert_ASN.add(signatureValue)
     val Certificate = DERSequence(cert_ASN)
 
     //=============================================================
     //  Write certificate to file
 
-    val file = File("bin/cert.der")
+    val file = File("bin/cert-improved.der")
     file.writeBytes(Certificate.getEncoded())
 }
