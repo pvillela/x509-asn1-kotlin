@@ -10,6 +10,9 @@ import java.util.*
 // See Constructing an X.509 Certificate Using ASN.1
 // https://cipherious.wordpress.com/2013/05/13/constructing-an-x-509-certificate-using-asn-1/ or
 // or the local copy of the article in the project directory.
+//
+// Block comments using /* ... */ contain ASN.1 schema fragments from
+// https://datatracker.ietf.org/doc/html/rfc5912.
 fun main() {
 
     // Secure random number generator for cert serial number and key generation
@@ -312,6 +315,41 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Extended Key Usage
+    /*
+        -- extended key usage extension OID and syntax
+
+        ext-ExtKeyUsage EXTENSION ::= { SYNTAX
+         ExtKeyUsageSyntax IDENTIFIED BY id-ce-extKeyUsage }
+        id-ce-extKeyUsage OBJECT IDENTIFIER ::= {id-ce 37}
+
+        ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
+
+        KeyPurposeId ::= OBJECT IDENTIFIER
+
+        -- permit unspecified key uses
+
+        anyExtendedKeyUsage OBJECT IDENTIFIER ::= { id-ce-extKeyUsage 0 }
+
+        -- extended key purpose OIDs
+
+        id-kp-serverAuth       OBJECT IDENTIFIER ::= { id-kp 1 }
+        id-kp-clientAuth       OBJECT IDENTIFIER ::= { id-kp 2 }
+        id-kp-codeSigning      OBJECT IDENTIFIER ::= { id-kp 3 }
+        id-kp-emailProtection  OBJECT IDENTIFIER ::= { id-kp 4 }
+        id-kp-timeStamping     OBJECT IDENTIFIER ::= { id-kp 8 }
+        id-kp-OCSPSigning      OBJECT IDENTIFIER ::= { id-kp 9 }
+
+        -- PV: from elsewhere in schema
+
+        -- Shared arc for standard certificate and CRL extensions
+        id-ce OBJECT IDENTIFIER  ::=  { joint-iso-ccitt(2) ds(5) 29 }
+        -- arc for policy qualifier types
+        id-kp OBJECT IDENTIFIER ::= { id-pkix 3 }
+        -- PV
+        id-pkix  OBJECT IDENTIFIER  ::=
+            {iso(1) identified-organization(3) dod(6) internet(1) security(5)
+            mechanisms(5) pkix(7)}
+     */
 
     val serverAuthEKU = ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.1")
     val emailProtectionEKU = ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.4")
@@ -320,10 +358,10 @@ fun main() {
     EKU_ASN.add(emailProtectionEKU)
     val EKUSeq = DERSequence(EKU_ASN)
 
-    val ExtendedKeyUsage_ASN = ASN1EncodableVector()
-    ExtendedKeyUsage_ASN.add(ASN1ObjectIdentifier("2.5.29.37"))
-    ExtendedKeyUsage_ASN.add(DEROctetString(EKUSeq))
-    val ExtendedKeyUsage = DERSequence(ExtendedKeyUsage_ASN)
+    val extendedKeyUsage_ASN = ASN1EncodableVector()
+    extendedKeyUsage_ASN.add(ASN1ObjectIdentifier("2.5.29.37"))
+    extendedKeyUsage_ASN.add(DEROctetString(EKUSeq))
+    val ExtendedKeyUsage = DERSequence(extendedKeyUsage_ASN)
 
     //-------------------------------------------------------------
     //  Basic Constraints
