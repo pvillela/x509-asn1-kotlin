@@ -198,6 +198,21 @@ fun main() {
     //  CRL Distribution Points
 
     /*
+        --  EXTENSION
+
+        --
+        --  This class definition is used to describe the association of
+        --      object identifier and ASN.1 type structure for extensions
+        --
+        --  All extensions are prefixed with ext-
+        --
+        --  &id contains the object identifier for the extension
+        --  &ExtnType specifies the ASN.1 type structure for the extension
+        --  &Critical contains the set of legal values for the critical field.
+        --      This is normally {TRUE|FALSE} but in some instances may be
+        --      restricted to just one of these values.
+        --
+
         EXTENSION ::= CLASS {
             &id  OBJECT IDENTIFIER UNIQUE,
             &ExtnType,
@@ -206,6 +221,43 @@ fun main() {
             SYNTAX &ExtnType IDENTIFIED BY &id
             [CRITICALITY &Critical]
         }
+
+        --  Extensions
+        --
+        --  Used for a sequence of extensions.
+        --
+        --  The parameter contains the set of legal extensions that can
+        --  occur in this sequence.
+        --
+
+        Extensions{EXTENSION:ExtensionSet} ::=
+            SEQUENCE SIZE (1..MAX) OF Extension{{ExtensionSet}}
+
+        --  Extension
+        --
+        --  Used for a single extension
+        --
+        --  The parameter contains the set of legal extensions that can
+        --      occur in this extension.
+        --
+        --  The restriction on the critical field has been commented out
+        --  the authors are not completely sure it is correct.
+        --  The restriction could be done using custom code rather than
+        --  compiler-generated code, however.
+        --
+
+        Extension{EXTENSION:ExtensionSet} ::= SEQUENCE {
+            extnID      EXTENSION.&id({ExtensionSet}),
+
+            critical    BOOLEAN
+            --                     (EXTENSION.&Critical({ExtensionSet}{@extnID}))
+                             DEFAULT FALSE,
+            extnValue   OCTET STRING (CONTAINING
+                        EXTENSION.&ExtnType({ExtensionSet}{@extnID}))
+                        --  contains the DER encoding of the ASN.1 value
+                        --  corresponding to the extension type identified
+                        --  by extnID
+            }
      */
 
     //-------------------------------------------------------------
@@ -258,6 +310,8 @@ fun main() {
     //Subject Key Identifier
     val subjectKeyIdentifier_ASN = ASN1EncodableVector()
     subjectKeyIdentifier_ASN.add(ASN1ObjectIdentifier("2.5.29.14"))
+    // Below additional wrapping with OCTET STRING is needed because of the definition
+    // of the extnValue field in the above Extension SEQUENCE type.
     subjectKeyIdentifier_ASN.add(DEROctetString(keyIdentifier))
     val subjectKeyIdentifier = DERSequence(subjectKeyIdentifier_ASN)
 
@@ -361,7 +415,7 @@ fun main() {
     val extendedKeyUsage_ASN = ASN1EncodableVector()
     extendedKeyUsage_ASN.add(ASN1ObjectIdentifier("2.5.29.37"))
     extendedKeyUsage_ASN.add(DEROctetString(EKUSeq))
-    val ExtendedKeyUsage = DERSequence(extendedKeyUsage_ASN)
+    val extendedKeyUsage = DERSequence(extendedKeyUsage_ASN)
 
     //-------------------------------------------------------------
     //  Basic Constraints
@@ -498,7 +552,7 @@ fun main() {
     Extensions_ASN.add(subjectKeyIdentifier)
     Extensions_ASN.add(authorityKeyIdentifier)
     Extensions_ASN.add(KeyUsage)
-    Extensions_ASN.add(ExtendedKeyUsage)
+    Extensions_ASN.add(extendedKeyUsage)
     Extensions_ASN.add(BasicConstraints)
     Extensions_ASN.add(CertificatePolicies)
     Extensions_ASN.add(SubjectAlternativeName)
