@@ -304,6 +304,8 @@ fun main() {
         ext-SubjectKeyIdentifier EXTENSION ::= { SYNTAX
             KeyIdentifier IDENTIFIED BY id-ce-subjectKeyIdentifier }
         id-ce-subjectKeyIdentifier OBJECT IDENTIFIER ::=  { id-ce 14 }
+
+        -- PV: see GeneralNames in section `Subject Alternative Name` below
      */
 
     //Get the subjectPublicKey from SubjectPublicKeyInfo to calculate the keyIdentifier
@@ -512,6 +514,35 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Subject Alternative Name
+    /*
+        -- subject alternative name extension OID and syntax
+
+        ext-SubjectAltName EXTENSION ::= { SYNTAX
+         GeneralNames IDENTIFIED BY id-ce-subjectAltName }
+        id-ce-subjectAltName OBJECT IDENTIFIER ::=  { id-ce 17 }
+
+        GeneralNames ::= SEQUENCE SIZE (1..MAX) OF GeneralName
+
+        GeneralName ::= CHOICE {
+          otherName                   [0]  INSTANCE OF OTHER-NAME,
+          rfc822Name                  [1]  IA5String,
+          dNSName                     [2]  IA5String,
+          x400Address                 [3]  ORAddress,
+          directoryName               [4]  Name,
+          ediPartyName                [5]  EDIPartyName,
+          uniformResourceIdentifier   [6]  IA5String,
+          iPAddress                   [7]  OCTET STRING,
+          registeredID                [8]  OBJECT IDENTIFIER
+        }
+
+        -- AnotherName replaces OTHER-NAME ::= TYPE-IDENTIFIER, as
+        -- TYPE-IDENTIFIER is not supported in the '88 ASN.1 syntax
+
+        OTHER-NAME ::= TYPE-IDENTIFIER
+
+        -- PV: see definition of Name in `issuer Name` section above
+        -- PV: omitted schema lines for CHOICE options not used here
+     */
 
     val rfc822Name = DERTaggedObject(false, 1, DERIA5String("john.smith@gmail.com"))
     val directoryName = DERTaggedObject(true, 4, subjectName) //directoryName explicitly tagged
@@ -528,6 +559,37 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Authority Information Access
+    /*
+        -- authority info access
+
+        ext-AuthorityInfoAccess EXTENSION ::= { SYNTAX
+         AuthorityInfoAccessSyntax IDENTIFIED BY
+         id-pe-authorityInfoAccess }
+        id-pe-authorityInfoAccess OBJECT IDENTIFIER ::= { id-pe 1 }
+
+        AuthorityInfoAccessSyntax  ::=
+             SEQUENCE SIZE (1..MAX) OF AccessDescription
+
+        AccessDescription  ::=  SEQUENCE {
+             accessMethod          OBJECT IDENTIFIER,
+             accessLocation        GeneralName  }
+
+        -- PV: see definition of GeneralName in above `Subject Alternative Name` section
+
+        -- PV: from elsewhere in X.509 modules
+
+        -- access descriptor definitions
+        id-ad-ocsp         OBJECT IDENTIFIER ::= { id-ad 1 }
+        id-ad-caIssuers    OBJECT IDENTIFIER ::= { id-ad 2 }
+
+        id-ad OBJECT IDENTIFIER ::= { id-pkix 48 }
+
+        id-pe OBJECT IDENTIFIER  ::=  { id-pkix 1 }
+
+        id-pkix  OBJECT IDENTIFIER  ::=
+            {iso(1) identified-organization(3) dod(6) internet(1) security(5)
+            mechanisms(5) pkix(7)}
+     */
 
     val caIssuers = DERTaggedObject(false, 6, DERIA5String("http://www.somewebsite.com/ca.cer"))
     val ocspURL = DERTaggedObject(false, 6, DERIA5String("http://ocsp.somewebsite.com"))
@@ -548,10 +610,50 @@ fun main() {
     val AIA_ASN = ASN1EncodableVector()
     AIA_ASN.add(ASN1ObjectIdentifier("1.3.6.1.5.5.7.1.1"))
     AIA_ASN.add(DEROctetString(AIASyntaxSeq))
-    val AuthorityInformationAccess = DERSequence(AIA_ASN)
+    val authorityInformationAccess = DERSequence(AIA_ASN)
 
     //-------------------------------------------------------------
     //  CRL Distribution Points
+    /*
+        -- CRL distribution points extension OID and syntax
+
+        ext-CRLDistributionPoints EXTENSION ::= { SYNTAX
+         CRLDistributionPoints IDENTIFIED BY id-ce-cRLDistributionPoints}
+        id-ce-cRLDistributionPoints     OBJECT IDENTIFIER  ::=  {id-ce 31}
+        CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
+
+        DistributionPoint ::= SEQUENCE {
+          distributionPoint       [0] DistributionPointName OPTIONAL,
+          reasons                 [1] ReasonFlags OPTIONAL,
+          cRLIssuer               [2] GeneralNames OPTIONAL
+        }
+        --
+        --  This is not a requirement in the text, but it seems as if it
+        --      should be
+        --
+        --(WITH COMPONENTS {..., distributionPoint PRESENT} |
+        -- WITH COMPONENTS {..., cRLIssuer PRESENT})
+
+        DistributionPointName ::= CHOICE {
+          fullName                [0] GeneralNames,
+          nameRelativeToCRLIssuer [1] RelativeDistinguishedName
+        }
+
+        -- PV: see GeneralNames in `Subject Alternative Names` section above
+        -- PV: see RelativeDistinguishedName in `issuer Name` section above
+
+        ReasonFlags ::= BIT STRING {
+          unused                  (0),
+          keyCompromise           (1),
+          cACompromise            (2),
+          affiliationChanged      (3),
+          superseded              (4),
+          cessationOfOperation    (5),
+          certificateHold         (6),
+          privilegeWithdrawn      (7),
+          aACompromise            (8)
+        }
+     */
 
     val crlDPURL_One = DERTaggedObject(false, 6, DERIA5String("http://crl.somewebsite.com/master.crl"))
     val crlDPURL_One_ASN = ASN1EncodableVector()
@@ -608,7 +710,7 @@ fun main() {
     Extensions_ASN.add(BasicConstraints)
     Extensions_ASN.add(CertificatePolicies)
     Extensions_ASN.add(SubjectAlternativeName)
-    Extensions_ASN.add(AuthorityInformationAccess)
+    Extensions_ASN.add(authorityInformationAccess)
     Extensions_ASN.add(CRLDistributionPoints)
     val Extensions = DERSequence(Extensions_ASN)
 
