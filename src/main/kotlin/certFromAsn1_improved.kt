@@ -258,6 +258,17 @@ fun main() {
                         --  corresponding to the extension type identified
                         --  by extnID
             }
+
+        -- PV: from elsewhere in schema
+
+        -- Shared arc for standard certificate and CRL extensions
+        id-ce OBJECT IDENTIFIER  ::=  { joint-iso-ccitt(2) ds(5) 29 }
+        -- arc for policy qualifier types
+        id-kp OBJECT IDENTIFIER ::= { id-pkix 3 }
+        -- PV
+        id-pkix  OBJECT IDENTIFIER  ::=
+            {iso(1) identified-organization(3) dod(6) internet(1) security(5)
+            mechanisms(5) pkix(7)}
      */
 
     //-------------------------------------------------------------
@@ -365,7 +376,7 @@ fun main() {
     val keyUsage_ASN = ASN1EncodableVector()
     keyUsage_ASN.add(ASN1ObjectIdentifier("2.5.29.15"))
     keyUsage_ASN.add(DEROctetString(keyUsageBitString))
-    val KeyUsage = DERSequence(keyUsage_ASN)
+    val keyUsage = DERSequence(keyUsage_ASN)
 
     //-------------------------------------------------------------
     //  Extended Key Usage
@@ -384,6 +395,16 @@ fun main() {
 
         anyExtendedKeyUsage OBJECT IDENTIFIER ::= { id-ce-extKeyUsage 0 }
 
+        -- extended key usage extension OID and syntax
+
+        ext-ExtKeyUsage EXTENSION ::= { SYNTAX
+         ExtKeyUsageSyntax IDENTIFIED BY id-ce-extKeyUsage }
+        id-ce-extKeyUsage OBJECT IDENTIFIER ::= {id-ce 37}
+
+        ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
+
+        KeyPurposeId ::= OBJECT IDENTIFIER
+
         -- extended key purpose OIDs
 
         id-kp-serverAuth       OBJECT IDENTIFIER ::= { id-kp 1 }
@@ -392,17 +413,6 @@ fun main() {
         id-kp-emailProtection  OBJECT IDENTIFIER ::= { id-kp 4 }
         id-kp-timeStamping     OBJECT IDENTIFIER ::= { id-kp 8 }
         id-kp-OCSPSigning      OBJECT IDENTIFIER ::= { id-kp 9 }
-
-        -- PV: from elsewhere in schema
-
-        -- Shared arc for standard certificate and CRL extensions
-        id-ce OBJECT IDENTIFIER  ::=  { joint-iso-ccitt(2) ds(5) 29 }
-        -- arc for policy qualifier types
-        id-kp OBJECT IDENTIFIER ::= { id-pkix 3 }
-        -- PV
-        id-pkix  OBJECT IDENTIFIER  ::=
-            {iso(1) identified-organization(3) dod(6) internet(1) security(5)
-            mechanisms(5) pkix(7)}
      */
 
     val serverAuthEKU = ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.1")
@@ -419,6 +429,29 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Basic Constraints
+    /*
+        -- basic constraints extension OID and syntax
+
+        ext-BasicConstraints EXTENSION ::= { SYNTAX
+         BasicConstraints IDENTIFIED BY id-ce-basicConstraints }
+        id-ce-basicConstraints OBJECT IDENTIFIER ::=  { id-ce 19 }
+
+        BasicConstraints ::= SEQUENCE {
+          cA                      BOOLEAN DEFAULT FALSE,
+          pathLenConstraint       INTEGER (0..MAX) OPTIONAL
+        }
+
+        -- basic constraints extension OID and syntax
+
+        ext-BasicConstraints EXTENSION ::= { SYNTAX
+         BasicConstraints IDENTIFIED BY id-ce-basicConstraints }
+        id-ce-basicConstraints OBJECT IDENTIFIER ::=  { id-ce 19 }
+
+        BasicConstraints ::= SEQUENCE {
+          cA                      BOOLEAN DEFAULT FALSE,
+          pathLenConstraint       INTEGER (0..MAX) OPTIONAL
+        }
+     */
 
     val isCA: ASN1Boolean = ASN1Boolean.getInstance(ASN1Boolean.TRUE)
     val pathLenConstraint = ASN1Integer(0)
@@ -436,7 +469,26 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Certificate Policies
+    /*
+        -- certificate policies extension OID and syntax
 
+        ext-CertificatePolicies EXTENSION ::= { SYNTAX
+         CertificatePolicies IDENTIFIED BY id-ce-certificatePolicies}
+        id-ce-certificatePolicies OBJECT IDENTIFIER ::=  { id-ce 32 }
+
+        CertificatePolicies ::= SEQUENCE SIZE (1..MAX) OF PolicyInformation
+
+        PolicyInformation ::= SEQUENCE {
+          policyIdentifier   CertPolicyId,
+          policyQualifiers   SEQUENCE SIZE (1..MAX) OF
+                  PolicyQualifierInfo OPTIONAL }
+
+        CertPolicyId ::= OBJECT IDENTIFIER
+
+        -- PV: omitted schema lines for optional PolicyQualifierInfo
+     */
+
+    // See article: author found the two below OIDs online (2.16.840.1.101.2 belonging to US DOD)
     val policyIdentifierOne = ASN1ObjectIdentifier("2.16.840.1.101.2.1.11.5")
     val policyIdentifierTwo = ASN1ObjectIdentifier("2.16.840.1.101.2.1.11.18")
 
@@ -551,7 +603,7 @@ fun main() {
     val Extensions_ASN = ASN1EncodableVector()
     Extensions_ASN.add(subjectKeyIdentifier)
     Extensions_ASN.add(authorityKeyIdentifier)
-    Extensions_ASN.add(KeyUsage)
+    Extensions_ASN.add(keyUsage)
     Extensions_ASN.add(extendedKeyUsage)
     Extensions_ASN.add(BasicConstraints)
     Extensions_ASN.add(CertificatePolicies)
