@@ -129,48 +129,47 @@ fun main() {
             mechanisms(5) pkix(7)}
      */
 
-    //-------------------------------------------------------------
-    //  Create Extensions
-
-    val Extensions_ASN = ASN1EncodableVector()
-    Extensions_ASN.add(subjectKeyIdentifier)
-    Extensions_ASN.add(authorityKeyIdentifier)
-    Extensions_ASN.add(keyUsage)
-    Extensions_ASN.add(extendedKeyUsage)
-    Extensions_ASN.add(basicConstraints)
-    Extensions_ASN.add(certificatePolicies)
-    Extensions_ASN.add(subjectAlternativeName)
-    Extensions_ASN.add(authorityInformationAccess)
-    Extensions_ASN.add(crlDistributionPoints)
-    val Extensions = DERSequence(Extensions_ASN)
-
-    val extensions = DERTaggedObject(true, 3, Extensions)
-
     //=============================================================
     //  TBSCertificate := SEQUENCE
 
-    val TBSCertificate_ASN = ASN1EncodableVector()
-    TBSCertificate_ASN.add(version)
-    TBSCertificate_ASN.add(serialNumber)
-    TBSCertificate_ASN.add(signatureAlgorithm)
-    TBSCertificate_ASN.add(issuerName)
-    TBSCertificate_ASN.add(validity)
-    TBSCertificate_ASN.add(subjectName)
-    TBSCertificate_ASN.add(subjectPublicKeyInfo)
-    TBSCertificate_ASN.add(extensions)
+    val tbsCertificate_ASN = ASN1EncodableVector()
+    tbsCertificate_ASN.add(version)
+    tbsCertificate_ASN.add(serialNumber)
+    tbsCertificate_ASN.add(signatureAlgorithm)
+    tbsCertificate_ASN.add(issuerName)
+    tbsCertificate_ASN.add(validity)
+    tbsCertificate_ASN.add(subjectName)
+    tbsCertificate_ASN.add(subjectPublicKeyInfo)
 
-    val TBSCertificate = DERSequence(TBSCertificate_ASN)
+    val extensions = run {
+        val extensions_ASN = ASN1EncodableVector()
+        extensions_ASN.add(subjectKeyIdentifier)
+        extensions_ASN.add(authorityKeyIdentifier)
+        extensions_ASN.add(keyUsage)
+        extensions_ASN.add(extendedKeyUsage)
+        extensions_ASN.add(basicConstraints)
+        extensions_ASN.add(certificatePolicies)
+        extensions_ASN.add(subjectAlternativeName)
+        extensions_ASN.add(authorityInformationAccess)
+        extensions_ASN.add(crlDistributionPoints)
+        val extensionsSeq = DERSequence(extensions_ASN)
+        DERTaggedObject(true, 3, extensionsSeq)
+    }
+
+    tbsCertificate_ASN.add(extensions)
+
+    val tbsCertificate = DERSequence(tbsCertificate_ASN)
 
     //=============================================================
     //  Create the signature value
 
     Security.addProvider(BouncyCastleProvider())
 
-    val TBSCertificateBytes = TBSCertificate.encoded
-    val RSAPrivKey = keyPair.private
+    val tbsCertificateBytes = tbsCertificate.encoded
+    val rsaPrivKey = keyPair.private
     val signer: Signature = Signature.getInstance("SHA1WithRSA", "BC")
-    signer.initSign(RSAPrivKey)
-    signer.update(TBSCertificateBytes)
+    signer.initSign(rsaPrivKey)
+    signer.update(tbsCertificateBytes)
     val signature: ByteArray = signer.sign()
     val signatureValue = DERBitString(signature)
 
@@ -178,14 +177,14 @@ fun main() {
     //  Create the certificate structure
 
     val cert_ASN = ASN1EncodableVector()
-    cert_ASN.add(TBSCertificate)
+    cert_ASN.add(tbsCertificate)
     cert_ASN.add(signatureAlgorithm)
     cert_ASN.add(signatureValue)
-    val Certificate = DERSequence(cert_ASN)
+    val certificate = DERSequence(cert_ASN)
 
     //=============================================================
     //  Write certificate to file
 
     val file = File("bin/cert-decomposed.der")
-    file.writeBytes(Certificate.getEncoded())
+    file.writeBytes(certificate.getEncoded())
 }
