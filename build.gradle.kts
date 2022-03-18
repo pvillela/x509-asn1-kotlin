@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.5.10"
+    kotlin("jvm") version "1.6.10"
     application
 }
 
@@ -13,6 +13,9 @@ repositories {
 }
 
 dependencies {
+//    implementation("org.jetbrains.kotlin:kotlin-reflect")
+//    implementation("org.jetbrains.kotlin:kotlin-test")
+
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
     implementation("org.bouncycastle:bcprov-jdk15on:1.70")
 //    implementation("org.bouncycastle:bcprov-jdk15on:1.48")

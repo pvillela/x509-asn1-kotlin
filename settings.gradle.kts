@@ -1,3 +1,3 @@
 
-rootProject.name = "x509-with-asn1"
+rootProject.name = "x509-asn1-kotlin"
 

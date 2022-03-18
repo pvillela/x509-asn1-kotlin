@@ -1,18 +1,20 @@
+package original
+
 import org.bouncycastle.asn1.*
 import org.bouncycastle.crypto.Digest
 import org.bouncycastle.crypto.digests.SHA1Digest
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.File
 import java.math.BigInteger
-import java.security.*
+import java.security.KeyPairGenerator
+import java.security.SecureRandom
+import java.security.Security
+import java.security.Signature
 import java.util.*
 
 // See Constructing an X.509 Certificate Using ASN.1
 // https://cipherious.wordpress.com/2013/05/13/constructing-an-x-509-certificate-using-asn-1/ or
 // or the local copy of the article in the project directory.
-//
-// Block comments using /* ... */ contain ASN.1 schema fragments from
-// https://datatracker.ietf.org/doc/html/rfc5912.
 fun main() {
 
     // Secure random number generator for cert serial number and key generation
@@ -48,7 +50,7 @@ fun main() {
         Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
      */
 
-    val version = DERTaggedObject(true, 0, ASN1Integer(2))
+    val Version = DERTaggedObject(true, 0, ASN1Integer(2))
 
     //=============================================================
     //  serialNumber CertificateSerialNumber
@@ -60,7 +62,7 @@ fun main() {
     val bytes = ByteArray(9)
     random.nextBytes(bytes)
     val bigInteger = BigInteger(1, bytes)
-    val serialNumber: ASN1Integer = ASN1Integer(bigInteger)
+    val CertificateSerialNumber: ASN1Integer = ASN1Integer(bigInteger)
 
     //=============================================================
     //  signature AlgorithmIdentifier
@@ -70,10 +72,10 @@ fun main() {
             parameters ANY DEFINED BY algorithm OPTIONAL  }
      */
 
-    val signatureAlgorithmIdentifier_ASN: ASN1EncodableVector = ASN1EncodableVector()
-    signatureAlgorithmIdentifier_ASN.add(ASN1ObjectIdentifier("1.2.840.113549.1.1.5"))
-    signatureAlgorithmIdentifier_ASN.add(DERNull.INSTANCE)
-    val signatureAlgorithm: DERSequence = DERSequence(signatureAlgorithmIdentifier_ASN)
+    val SignatureAlgorithmIdentifier_ASN: ASN1EncodableVector = ASN1EncodableVector()
+    SignatureAlgorithmIdentifier_ASN.add(ASN1ObjectIdentifier("1.2.840.113549.1.1.5"))
+    SignatureAlgorithmIdentifier_ASN.add(DERNull.INSTANCE)
+    val SignatureAlgorithm: DERSequence = DERSequence(SignatureAlgorithmIdentifier_ASN)
 
     //=============================================================
     //  issuer Name
@@ -112,14 +114,14 @@ fun main() {
     val organizationalUnitName = DERSet(organizationalUnitNameATV)
     val issuerCommonName = DERSet(issuerCommonNameATV)
 
-    val issuerRelativeDistinguishedName = ASN1EncodableVector()
-    issuerRelativeDistinguishedName.add(countryName)
-    issuerRelativeDistinguishedName.add(organizationName)
-    issuerRelativeDistinguishedName.add(organizationalUnitName)
-    issuerRelativeDistinguishedName.add(issuerCommonName)
+    val IssuerRelativeDistinguishedName = ASN1EncodableVector()
+    IssuerRelativeDistinguishedName.add(countryName)
+    IssuerRelativeDistinguishedName.add(organizationName)
+    IssuerRelativeDistinguishedName.add(organizationalUnitName)
+    IssuerRelativeDistinguishedName.add(issuerCommonName)
 
     //RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
-    val issuerName = DERSequence(issuerRelativeDistinguishedName)
+    val IssuerName = DERSequence(IssuerRelativeDistinguishedName)
 
     //=============================================================
     //  validity Validity
@@ -132,10 +134,10 @@ fun main() {
 
     val notBefore = DERUTCTime(Date(System.currentTimeMillis()))
     val notAfter = DERUTCTime(Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 30 * 12 * 3))
-    val time = ASN1EncodableVector()
-    time.add(notBefore)
-    time.add(notAfter)
-    val validity = DERSequence(time)
+    val Time = ASN1EncodableVector()
+    Time.add(notBefore)
+    Time.add(notAfter)
+    val Validity = DERSequence(Time)
 
     //=============================================================
     //  subject Name
@@ -151,14 +153,14 @@ fun main() {
 
     //RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue
     val subjectCommonName = DERSet(subjectCommonNameATV)
-    val subjectRelativeDistinguishedName = ASN1EncodableVector()
-    subjectRelativeDistinguishedName.add(countryName)
-    subjectRelativeDistinguishedName.add(organizationName)
-    subjectRelativeDistinguishedName.add(organizationalUnitName)
-    subjectRelativeDistinguishedName.add(subjectCommonName)
+    val SubjectRelativeDistinguishedName = ASN1EncodableVector()
+    SubjectRelativeDistinguishedName.add(countryName)
+    SubjectRelativeDistinguishedName.add(organizationName)
+    SubjectRelativeDistinguishedName.add(organizationalUnitName)
+    SubjectRelativeDistinguishedName.add(subjectCommonName)
 
     //RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
-    val subjectName = DERSequence(subjectRelativeDistinguishedName)
+    val SubjectName = DERSequence(SubjectRelativeDistinguishedName)
 
     //=============================================================
     //  subjectPublicKeyInfo SubjectPublicKeyInfo
@@ -168,15 +170,16 @@ fun main() {
             subjectPublicKey     BIT STRING  }
      */
 
-    //Generate the 2048-bit RSA Public Key  - PublicKey returns SubjectPublicKeyInfo by default (X.509 format)
+    ///Generate the 2048-bit RSA Public Key  - PublicKey returns SubjectPublicKeyInfo by default (X.509 format)
+//    val random: SecureRandom = SecureRandom()
     val kpGen = KeyPairGenerator.getInstance("RSA")
     kpGen.initialize(2048, random)
-    val keyPair: KeyPair = kpGen.generateKeyPair()
-    val rsaPubKey: PublicKey = keyPair.public
+    val keyPair = kpGen.generateKeyPair()
+    val RSAPubKey = keyPair.public
 
-    // Convert public key bytes (already in SubjectPublicKeyInfo format) to ASN1Sequence
-    val rsaPubKeyBytes: ByteArray = rsaPubKey.encoded
-    val subjectPublicKeyInfo: ASN1Sequence = ASN1Sequence.getInstance(rsaPubKeyBytes)
+    //Convert public key bytes (in SubjectPublicKeyInfo format) to ASN1Sequence
+    val RSAPubKeyBytes = RSAPubKey.encoded
+    val SubjectPublicKeyInfo = ASN1Sequence.getInstance(RSAPubKeyBytes)
 
     //=============================================================
     //  issuerUniqueID [1] IMPLICIT UniqueIdentifier OPTIONAL,
@@ -197,119 +200,12 @@ fun main() {
     //  Authority Information Access
     //  CRL Distribution Points
 
-    /*
-        --  EXTENSION
-
-        --
-        --  This class definition is used to describe the association of
-        --      object identifier and ASN.1 type structure for extensions
-        --
-        --  All extensions are prefixed with ext-
-        --
-        --  &id contains the object identifier for the extension
-        --  &ExtnType specifies the ASN.1 type structure for the extension
-        --  &Critical contains the set of legal values for the critical field.
-        --      This is normally {TRUE|FALSE} but in some instances may be
-        --      restricted to just one of these values.
-        --
-
-        EXTENSION ::= CLASS {
-            &id  OBJECT IDENTIFIER UNIQUE,
-            &ExtnType,
-            &Critical    BOOLEAN DEFAULT {TRUE | FALSE }
-        } WITH SYNTAX {
-            SYNTAX &ExtnType IDENTIFIED BY &id
-            [CRITICALITY &Critical]
-        }
-
-        --  Extensions
-        --
-        --  Used for a sequence of extensions.
-        --
-        --  The parameter contains the set of legal extensions that can
-        --  occur in this sequence.
-        --
-
-        Extensions{EXTENSION:ExtensionSet} ::=
-            SEQUENCE SIZE (1..MAX) OF Extension{{ExtensionSet}}
-
-        --  Extension
-        --
-        --  Used for a single extension
-        --
-        --  The parameter contains the set of legal extensions that can
-        --      occur in this extension.
-        --
-        --  The restriction on the critical field has been commented out
-        --  the authors are not completely sure it is correct.
-        --  The restriction could be done using custom code rather than
-        --  compiler-generated code, however.
-        --
-
-        Extension{EXTENSION:ExtensionSet} ::= SEQUENCE {
-            extnID      EXTENSION.&id({ExtensionSet}),
-
-            critical    BOOLEAN
-            --                     (EXTENSION.&Critical({ExtensionSet}{@extnID}))
-                             DEFAULT FALSE,
-            extnValue   OCTET STRING (CONTAINING
-                        EXTENSION.&ExtnType({ExtensionSet}{@extnID}))
-                        --  contains the DER encoding of the ASN.1 value
-                        --  corresponding to the extension type identified
-                        --  by extnID
-            }
-
-        -- PV: from elsewhere in schema
-
-        -- Shared arc for standard certificate and CRL extensions
-        id-ce OBJECT IDENTIFIER  ::=  { joint-iso-ccitt(2) ds(5) 29 }
-        -- arc for policy qualifier types
-        id-kp OBJECT IDENTIFIER ::= { id-pkix 3 }
-        -- PV
-        id-pkix  OBJECT IDENTIFIER  ::=
-            {iso(1) identified-organization(3) dod(6) internet(1) security(5)
-            mechanisms(5) pkix(7)}
-     */
-
     //-------------------------------------------------------------
     //  Subject Key Identifier
     //  Authority Key Identifier
-    /*
-        -- authority key identifier OID and syntax
-
-        ext-AuthorityKeyIdentifier EXTENSION ::= { SYNTAX
-            AuthorityKeyIdentifier IDENTIFIED BY
-            id-ce-authorityKeyIdentifier }
-        id-ce-authorityKeyIdentifier OBJECT IDENTIFIER ::=  { id-ce 35 }
-
-        AuthorityKeyIdentifier ::= SEQUENCE {
-            keyIdentifier             [0] KeyIdentifier            OPTIONAL,
-            authorityCertIssuer       [1] GeneralNames             OPTIONAL,
-            authorityCertSerialNumber [2] CertificateSerialNumber  OPTIONAL }
-            (WITH COMPONENTS {
-            ...,
-            authorityCertIssuer        PRESENT,
-            authorityCertSerialNumber  PRESENT
-            } |
-            WITH COMPONENTS {
-            ...,
-            authorityCertIssuer        ABSENT,
-            authorityCertSerialNumber  ABSENT
-            })
-
-        KeyIdentifier ::= OCTET STRING
-
-        -- subject key identifier OID and syntax
-
-        ext-SubjectKeyIdentifier EXTENSION ::= { SYNTAX
-            KeyIdentifier IDENTIFIED BY id-ce-subjectKeyIdentifier }
-        id-ce-subjectKeyIdentifier OBJECT IDENTIFIER ::=  { id-ce 14 }
-
-        -- PV: see GeneralNames in section `Subject Alternative Name` below
-     */
 
     //Get the subjectPublicKey from SubjectPublicKeyInfo to calculate the keyIdentifier
-    val subjectPublicKey = subjectPublicKeyInfo.getObjectAt(1).toASN1Primitive() as DERBitString
+    val subjectPublicKey = SubjectPublicKeyInfo.getObjectAt(1).toASN1Primitive() as DERBitString
 
     //Calculate the keyIdentifier
     // Same core key identifier for both issuer and subject because this is a self-signed cert
@@ -323,8 +219,6 @@ fun main() {
     //Subject Key Identifier
     val subjectKeyIdentifier_ASN = ASN1EncodableVector()
     subjectKeyIdentifier_ASN.add(ASN1ObjectIdentifier("2.5.29.14"))
-    // Below additional wrapping with OCTET STRING is needed because of the definition
-    // of the extnValue field in the above Extension SEQUENCE type.
     subjectKeyIdentifier_ASN.add(DEROctetString(keyIdentifier))
     val subjectKeyIdentifier = DERSequence(subjectKeyIdentifier_ASN)
 
@@ -340,28 +234,6 @@ fun main() {
 
     //-------------------------------------------------------------
     //  KeyUsage
-    /*
-        -- key usage extension OID and syntax
-
-        ext-KeyUsage EXTENSION ::= { SYNTAX
-            KeyUsage IDENTIFIED BY id-ce-keyUsage }
-        id-ce-keyUsage OBJECT IDENTIFIER ::=  { id-ce 15 }
-
-        KeyUsage ::= BIT STRING {
-
-          digitalSignature        (0),
-          nonRepudiation          (1), --  recent editions of X.509 have
-                                       --  renamed this bit to
-                                       --  contentCommitment
-          keyEncipherment         (2),
-          dataEncipherment        (3),
-          keyAgreement            (4),
-          keyCertSign             (5),
-          cRLSign                 (6),
-          encipherOnly            (7),
-          decipherOnly            (8)
-        }
-     */
 
     val digitalSignature = 1 shl 7
     val nonRepudiation = 1 shl 6
@@ -378,44 +250,10 @@ fun main() {
     val keyUsage_ASN = ASN1EncodableVector()
     keyUsage_ASN.add(ASN1ObjectIdentifier("2.5.29.15"))
     keyUsage_ASN.add(DEROctetString(keyUsageBitString))
-    val keyUsage = DERSequence(keyUsage_ASN)
+    val KeyUsage = DERSequence(keyUsage_ASN)
 
     //-------------------------------------------------------------
     //  Extended Key Usage
-    /*
-        -- extended key usage extension OID and syntax
-
-        ext-ExtKeyUsage EXTENSION ::= { SYNTAX
-         ExtKeyUsageSyntax IDENTIFIED BY id-ce-extKeyUsage }
-        id-ce-extKeyUsage OBJECT IDENTIFIER ::= {id-ce 37}
-
-        ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
-
-        KeyPurposeId ::= OBJECT IDENTIFIER
-
-        -- permit unspecified key uses
-
-        anyExtendedKeyUsage OBJECT IDENTIFIER ::= { id-ce-extKeyUsage 0 }
-
-        -- extended key usage extension OID and syntax
-
-        ext-ExtKeyUsage EXTENSION ::= { SYNTAX
-         ExtKeyUsageSyntax IDENTIFIED BY id-ce-extKeyUsage }
-        id-ce-extKeyUsage OBJECT IDENTIFIER ::= {id-ce 37}
-
-        ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
-
-        KeyPurposeId ::= OBJECT IDENTIFIER
-
-        -- extended key purpose OIDs
-
-        id-kp-serverAuth       OBJECT IDENTIFIER ::= { id-kp 1 }
-        id-kp-clientAuth       OBJECT IDENTIFIER ::= { id-kp 2 }
-        id-kp-codeSigning      OBJECT IDENTIFIER ::= { id-kp 3 }
-        id-kp-emailProtection  OBJECT IDENTIFIER ::= { id-kp 4 }
-        id-kp-timeStamping     OBJECT IDENTIFIER ::= { id-kp 8 }
-        id-kp-OCSPSigning      OBJECT IDENTIFIER ::= { id-kp 9 }
-     */
 
     val serverAuthEKU = ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.1")
     val emailProtectionEKU = ASN1ObjectIdentifier("1.3.6.1.5.5.7.3.4")
@@ -424,36 +262,13 @@ fun main() {
     EKU_ASN.add(emailProtectionEKU)
     val EKUSeq = DERSequence(EKU_ASN)
 
-    val extendedKeyUsage_ASN = ASN1EncodableVector()
-    extendedKeyUsage_ASN.add(ASN1ObjectIdentifier("2.5.29.37"))
-    extendedKeyUsage_ASN.add(DEROctetString(EKUSeq))
-    val extendedKeyUsage = DERSequence(extendedKeyUsage_ASN)
+    val ExtendedKeyUsage_ASN = ASN1EncodableVector()
+    ExtendedKeyUsage_ASN.add(ASN1ObjectIdentifier("2.5.29.37"))
+    ExtendedKeyUsage_ASN.add(DEROctetString(EKUSeq))
+    val ExtendedKeyUsage = DERSequence(ExtendedKeyUsage_ASN)
 
     //-------------------------------------------------------------
     //  Basic Constraints
-    /*
-        -- basic constraints extension OID and syntax
-
-        ext-BasicConstraints EXTENSION ::= { SYNTAX
-         BasicConstraints IDENTIFIED BY id-ce-basicConstraints }
-        id-ce-basicConstraints OBJECT IDENTIFIER ::=  { id-ce 19 }
-
-        BasicConstraints ::= SEQUENCE {
-          cA                      BOOLEAN DEFAULT FALSE,
-          pathLenConstraint       INTEGER (0..MAX) OPTIONAL
-        }
-
-        -- basic constraints extension OID and syntax
-
-        ext-BasicConstraints EXTENSION ::= { SYNTAX
-         BasicConstraints IDENTIFIED BY id-ce-basicConstraints }
-        id-ce-basicConstraints OBJECT IDENTIFIER ::=  { id-ce 19 }
-
-        BasicConstraints ::= SEQUENCE {
-          cA                      BOOLEAN DEFAULT FALSE,
-          pathLenConstraint       INTEGER (0..MAX) OPTIONAL
-        }
-     */
 
     val isCA: ASN1Boolean = ASN1Boolean.getInstance(ASN1Boolean.TRUE)
     val pathLenConstraint = ASN1Integer(0)
@@ -471,26 +286,7 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Certificate Policies
-    /*
-        -- certificate policies extension OID and syntax
 
-        ext-CertificatePolicies EXTENSION ::= { SYNTAX
-         CertificatePolicies IDENTIFIED BY id-ce-certificatePolicies}
-        id-ce-certificatePolicies OBJECT IDENTIFIER ::=  { id-ce 32 }
-
-        CertificatePolicies ::= SEQUENCE SIZE (1..MAX) OF PolicyInformation
-
-        PolicyInformation ::= SEQUENCE {
-          policyIdentifier   CertPolicyId,
-          policyQualifiers   SEQUENCE SIZE (1..MAX) OF
-                  PolicyQualifierInfo OPTIONAL }
-
-        CertPolicyId ::= OBJECT IDENTIFIER
-
-        -- PV: omitted schema lines for optional PolicyQualifierInfo
-     */
-
-    // See article: author found the two below OIDs online (2.16.840.1.101.2 belonging to US DOD)
     val policyIdentifierOne = ASN1ObjectIdentifier("2.16.840.1.101.2.1.11.5")
     val policyIdentifierTwo = ASN1ObjectIdentifier("2.16.840.1.101.2.1.11.18")
 
@@ -514,38 +310,9 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Subject Alternative Name
-    /*
-        -- subject alternative name extension OID and syntax
-
-        ext-SubjectAltName EXTENSION ::= { SYNTAX
-         GeneralNames IDENTIFIED BY id-ce-subjectAltName }
-        id-ce-subjectAltName OBJECT IDENTIFIER ::=  { id-ce 17 }
-
-        GeneralNames ::= SEQUENCE SIZE (1..MAX) OF GeneralName
-
-        GeneralName ::= CHOICE {
-          otherName                   [0]  INSTANCE OF OTHER-NAME,
-          rfc822Name                  [1]  IA5String,
-          dNSName                     [2]  IA5String,
-          x400Address                 [3]  ORAddress,
-          directoryName               [4]  Name,
-          ediPartyName                [5]  EDIPartyName,
-          uniformResourceIdentifier   [6]  IA5String,
-          iPAddress                   [7]  OCTET STRING,
-          registeredID                [8]  OBJECT IDENTIFIER
-        }
-
-        -- AnotherName replaces OTHER-NAME ::= TYPE-IDENTIFIER, as
-        -- TYPE-IDENTIFIER is not supported in the '88 ASN.1 syntax
-
-        OTHER-NAME ::= TYPE-IDENTIFIER
-
-        -- PV: see definition of Name in `issuer Name` section above
-        -- PV: omitted schema lines for CHOICE options not used here
-     */
 
     val rfc822Name = DERTaggedObject(false, 1, DERIA5String("john.smith@gmail.com"))
-    val directoryName = DERTaggedObject(true, 4, subjectName) //directoryName explicitly tagged
+    val directoryName = DERTaggedObject(true, 4, SubjectName) //directoryName explicitly tagged
 
     val GeneralNamesVec = ASN1EncodableVector()
     GeneralNamesVec.add(rfc822Name)
@@ -559,37 +326,6 @@ fun main() {
 
     //-------------------------------------------------------------
     //  Authority Information Access
-    /*
-        -- authority info access
-
-        ext-AuthorityInfoAccess EXTENSION ::= { SYNTAX
-         AuthorityInfoAccessSyntax IDENTIFIED BY
-         id-pe-authorityInfoAccess }
-        id-pe-authorityInfoAccess OBJECT IDENTIFIER ::= { id-pe 1 }
-
-        AuthorityInfoAccessSyntax  ::=
-             SEQUENCE SIZE (1..MAX) OF AccessDescription
-
-        AccessDescription  ::=  SEQUENCE {
-             accessMethod          OBJECT IDENTIFIER,
-             accessLocation        GeneralName  }
-
-        -- PV: see definition of GeneralName in above `Subject Alternative Name` section
-
-        -- PV: from elsewhere in X.509 modules
-
-        -- access descriptor definitions
-        id-ad-ocsp         OBJECT IDENTIFIER ::= { id-ad 1 }
-        id-ad-caIssuers    OBJECT IDENTIFIER ::= { id-ad 2 }
-
-        id-ad OBJECT IDENTIFIER ::= { id-pkix 48 }
-
-        id-pe OBJECT IDENTIFIER  ::=  { id-pkix 1 }
-
-        id-pkix  OBJECT IDENTIFIER  ::=
-            {iso(1) identified-organization(3) dod(6) internet(1) security(5)
-            mechanisms(5) pkix(7)}
-     */
 
     val caIssuers = DERTaggedObject(false, 6, DERIA5String("http://www.somewebsite.com/ca.cer"))
     val ocspURL = DERTaggedObject(false, 6, DERIA5String("http://ocsp.somewebsite.com"))
@@ -610,50 +346,10 @@ fun main() {
     val AIA_ASN = ASN1EncodableVector()
     AIA_ASN.add(ASN1ObjectIdentifier("1.3.6.1.5.5.7.1.1"))
     AIA_ASN.add(DEROctetString(AIASyntaxSeq))
-    val authorityInformationAccess = DERSequence(AIA_ASN)
+    val AuthorityInformationAccess = DERSequence(AIA_ASN)
 
     //-------------------------------------------------------------
     //  CRL Distribution Points
-    /*
-        -- CRL distribution points extension OID and syntax
-
-        ext-CRLDistributionPoints EXTENSION ::= { SYNTAX
-         CRLDistributionPoints IDENTIFIED BY id-ce-cRLDistributionPoints}
-        id-ce-cRLDistributionPoints     OBJECT IDENTIFIER  ::=  {id-ce 31}
-        CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
-
-        DistributionPoint ::= SEQUENCE {
-          distributionPoint       [0] DistributionPointName OPTIONAL,
-          reasons                 [1] ReasonFlags OPTIONAL,
-          cRLIssuer               [2] GeneralNames OPTIONAL
-        }
-        --
-        --  This is not a requirement in the text, but it seems as if it
-        --      should be
-        --
-        --(WITH COMPONENTS {..., distributionPoint PRESENT} |
-        -- WITH COMPONENTS {..., cRLIssuer PRESENT})
-
-        DistributionPointName ::= CHOICE {
-          fullName                [0] GeneralNames,
-          nameRelativeToCRLIssuer [1] RelativeDistinguishedName
-        }
-
-        -- PV: see GeneralNames in `Subject Alternative Names` section above
-        -- PV: see RelativeDistinguishedName in `issuer Name` section above
-
-        ReasonFlags ::= BIT STRING {
-          unused                  (0),
-          keyCompromise           (1),
-          cACompromise            (2),
-          affiliationChanged      (3),
-          superseded              (4),
-          cessationOfOperation    (5),
-          certificateHold         (6),
-          privilegeWithdrawn      (7),
-          aACompromise            (8)
-        }
-     */
 
     val crlDPURL_One = DERTaggedObject(false, 6, DERIA5String("http://crl.somewebsite.com/master.crl"))
     val crlDPURL_One_ASN = ASN1EncodableVector()
@@ -705,12 +401,12 @@ fun main() {
     val Extensions_ASN = ASN1EncodableVector()
     Extensions_ASN.add(subjectKeyIdentifier)
     Extensions_ASN.add(authorityKeyIdentifier)
-    Extensions_ASN.add(keyUsage)
-    Extensions_ASN.add(extendedKeyUsage)
+    Extensions_ASN.add(KeyUsage)
+    Extensions_ASN.add(ExtendedKeyUsage)
     Extensions_ASN.add(BasicConstraints)
     Extensions_ASN.add(CertificatePolicies)
     Extensions_ASN.add(SubjectAlternativeName)
-    Extensions_ASN.add(authorityInformationAccess)
+    Extensions_ASN.add(AuthorityInformationAccess)
     Extensions_ASN.add(CRLDistributionPoints)
     val Extensions = DERSequence(Extensions_ASN)
 
@@ -720,13 +416,13 @@ fun main() {
     //  TBSCertificate := SEQUENCE
 
     val TBSCertificate_ASN = ASN1EncodableVector()
-    TBSCertificate_ASN.add(version)
-    TBSCertificate_ASN.add(serialNumber)
-    TBSCertificate_ASN.add(signatureAlgorithm)
-    TBSCertificate_ASN.add(issuerName)
-    TBSCertificate_ASN.add(validity)
-    TBSCertificate_ASN.add(subjectName)
-    TBSCertificate_ASN.add(subjectPublicKeyInfo)
+    TBSCertificate_ASN.add(Version)
+    TBSCertificate_ASN.add(CertificateSerialNumber)
+    TBSCertificate_ASN.add(SignatureAlgorithm)
+    TBSCertificate_ASN.add(IssuerName)
+    TBSCertificate_ASN.add(Validity)
+    TBSCertificate_ASN.add(SubjectName)
+    TBSCertificate_ASN.add(SubjectPublicKeyInfo)
     TBSCertificate_ASN.add(extensions)
 
     val TBSCertificate = DERSequence(TBSCertificate_ASN)
@@ -749,13 +445,13 @@ fun main() {
 
     val cert_ASN = ASN1EncodableVector()
     cert_ASN.add(TBSCertificate)
-    cert_ASN.add(signatureAlgorithm)
+    cert_ASN.add(SignatureAlgorithm)
     cert_ASN.add(signatureValue)
     val Certificate = DERSequence(cert_ASN)
 
     //=============================================================
     //  Write certificate to file
 
-    val file = File("bin/cert-improved.der")
+    val file = File("bin/cert-original.der")
     file.writeBytes(Certificate.getEncoded())
 }
