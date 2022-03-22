@@ -1,4 +1,4 @@
-package decomposed
+package cert.decomposed
 
 import org.bouncycastle.asn1.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -6,10 +6,9 @@ import java.io.File
 import java.security.*
 
 // See Constructing an X.509 Certificate Using ASN.1
-// https://cipherious.wordpress.com/2013/05/13/constructing-an-x-509-certificate-using-asn-1/ or
-// or the local copy of the article in the project directory.
+// https://cipherious.wordpress.com/2013/05/13/constructing-an-x-509-certificate-using-asn-1/
 //
-// Block comments using /* ... */ contain ASN.1 schema fragments from
+// Block comments using /* ... */ in this and other files contain ASN.1 schema fragments from
 // https://datatracker.ietf.org/doc/html/rfc5912.
 fun main() {
     // The comments immediately below contain the ASN.1 structure of what will be built in this

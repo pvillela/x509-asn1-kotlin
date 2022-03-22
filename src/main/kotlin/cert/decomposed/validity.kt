@@ -1,4 +1,4 @@
-package decomposed
+package cert.decomposed
 
 import org.bouncycastle.asn1.ASN1EncodableVector
 import org.bouncycastle.asn1.DERSequence

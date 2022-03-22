@@ -1,4 +1,4 @@
-package decomposed
+package cert.decomposed
 
 import java.security.SecureRandom
 
