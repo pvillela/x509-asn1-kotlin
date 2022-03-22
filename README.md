@@ -1,4 +1,4 @@
-# x509-from-asn1
+# x509-asn1-kotlin
 
 Kotlin implementation of an X.509 certificate using the [Bouncy Castle](https://github.com/bcgit/bc-java) library's ASN.1 capabilities.
 
